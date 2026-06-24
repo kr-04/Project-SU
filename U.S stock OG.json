@@ -1,0 +1,373 @@
+{
+  "name": "U.S stock OG.",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "aa92bf9e-009c-45a4-9f66-d71fc524804d",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "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"
+            },
+            {
+              "name": "query",
+              "value": "latest US stock market news, Wall Street, S&P 500, Nasdaq, Dow Jones, US equities"
+            },
+            {
+              "name": "search_depth",
+              "value": "advanced"
+            },
+            {
+              "name": "max_results",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "706d7d40-42ea-4ca8-9951-0584c0a69da9",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-flash-latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        384,
+        224
+      ],
+      "id": "d6d5e7d4-3895-49f1-a2bc-f9c67bc93d94",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "y2WyhWj9fFcu9YOy",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        208
+      ],
+      "id": "7e1ff5d7-bead-498c-b1e4-11829e02bf38",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "y2WyhWj9fFcu9YOy",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=สรุปข่าวหุ้นวันนี้เป็นภาษาไทยและคัดเฉพาะส่วนที่สำคัญเท่านั้น อย่าใส่คำว่า “Input” หรือ “Output” หรือหัวข้ออื่นใดเพิ่ม:\n\n{{ $json.results.map(r => r.content).join(\"\\n\\n\") }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        432,
+        0
+      ],
+      "id": "bc092869-3c22-4f38-9a7d-a217a4cd18d9",
+      "name": "แปลภาษา"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "นี่คือรายการข่าวจากผู้ใช้:\n{{ $json.output }}\n\nแต่ละข่าวจะมีฟิลด์ \"หัวข้อ\" และ \"เนื้อหาสำคัญ\"\n\nโปรดจัดหมวดหมู่ข่าวตามหัวข้อดังนี้:\n- เทคโนโลยี\n- ยาและชีวเวชภัณฑ์\n- เวชภัณฑ์และอุปกรณ์การแพทย์\n- สินค้าอุปโภคบริโภค\n- การเงิน\n- พลังงาน\n- อุตสาหกรรม\n- อื่น ๆ\n\nให้ตรวจสอบเนื้อหาของแต่ละข่าว และจัดลงหมวดที่ตรงที่สุด\nถ้าข่าวไม่เข้ากับหมวดใดเลย ให้จัดลง \"อื่น ๆ\"\n\nให้ตอบกลับเป็น JSON เท่านั้น\nโครงสร้างต้องเป็นแบบนี้ โดยในแต่ละ array คือรายการข่าวที่อยู่ในหมวดนั้น\nแต่ละข่าวให้เป็น object ที่มีฟิลด์ \"หัวข้อ\" และ \"เนื้อหาสำคัญ\":\n\n{\n  \"เทคโนโลยี\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวเทคโนโลยี\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวเทคโนโลยี\"\n    }\n  ],\n  \"ยาและชีวเวชภัณฑ์\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวยาและชีวเวชภัณฑ์\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวยาและชีวเวชภัณฑ์\"\n    }\n  ],\n  \"เวชภัณฑ์และอุปกรณ์การแพทย์\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวเวชภัณฑ์และอุปกรณ์การแพทย์\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวเวชภัณฑ์และอุปกรณ์การแพทย์\"\n    }\n  ],\n  \"สินค้าอุปโภคบริโภค\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวสินค้าอุปโภคบริโภค\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวสินค้าอุปโภคบริโภค\"\n    }\n  ],\n  \"การเงิน\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวการเงิน\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวการเงิน\"\n    }\n  ],\n  \"พลังงาน\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวพลังงาน\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวพลังงาน\"\n    }\n  ],\n  \"อุตสาหกรรม\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวอุตสาหกรรม\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวอุตสาหกรรม\"\n    }\n  ],\n  \"อื่น ๆ\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวอื่น ๆ\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวอื่น ๆ\"\n    }\n  ]\n}\n\nข้อกำหนดสำคัญ:\n- ห้ามใส่ backtick เช่น ```\n- ห้าม escape เช่น \\n\n- ห้ามใส่ข้อความอธิบายอื่น ๆ นอกจาก JSON\n",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "คุณคือ AI สำหรับจัดหมวดหมู่ข่าว  ให้นำข่าวจาก input ไปใส่ในหมวดที่เหมาะสม  หมวดที่มี: - เทคโนโลยี - ยาและชีวเวชภัณฑ์ - เวชภัณฑ์และอุปกรณ์การแพทย์ - สินค้าอุปโภคบริโภค - การเงิน - พลังงาน - อุตสาหกรรม - อื่น ๆ  รูปแบบ output ต้องเป็น JSON เท่านั้น  ตัวอย่าง: {   \"news\": {     \"เทคโนโลยี\": [       {         \"หัวข้อ\": \"...\",         \"เนื้อหาสำคัญ\": \"...\"       }     ],     \"ยาและชีวเวชภัณฑ์\": [],     \"เวชภัณฑ์และอุปกรณ์การแพทย์\": [],     \"สินค้าอุปโภคบริโภค\": [],     \"การเงิน\": [],     \"พลังงาน\": [],     \"อุตสาหกรรม\": [],     \"อื่น ๆ\": []   } }  ข่าว: {{ JSON.stringify($json.output) }}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        1008,
+        0
+      ],
+      "id": "a2a39e0d-3fa1-4157-842f-75039af33833",
+      "name": "จัดหัวข้อ"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        704,
+        208
+      ],
+      "id": "a5b0256a-ff4e-499f-a260-af9700f478d9",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "y2WyhWj9fFcu9YOy",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=โปรดแยกข้อความข่าวด้านล่างออกเป็นหลายข่าว  \nโดยให้ผลลัพธ์เป็น JSON array เท่านั้น  \nโครงสร้างแต่ละข่าวประกอบด้วย:\n- headline\n- summary\n\nห้ามใส่ ``` or markdown  \nห้าม escape JSON เช่น \\n  \n\nนี่คือข้อความข่าวทั้งหมด:\n{{ $json.text }}\n",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=คุณคือระบบแยกข่าวออกเป็นรายการอย่างเป็นระเบียบ  \nให้ส่งผลลัพธ์เป็น JSON array เท่านั้น  \nห้ามใช้ backticks  \nห้ามใช้ markdown  \n"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        720,
+        0
+      ],
+      "id": "92e7a05b-75db-4b8c-bd0c-d3d171da1258",
+      "name": "แยกข่าวออกเป็นรายการ json"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[\n  {\n    \"หัวข้อ\": \"ตัวอย่างหัวข่าว\",\n    \"เนื้อหาสำคัญ\": \"ตัวอย่างสรุปเนื้อหา\"\n  }\n]\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        896,
+        208
+      ],
+      "id": "52d0c366-48c5-4e79-a55f-d1714b535c79",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"เทคโนโลยี\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวเทคโนโลยี\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวเทคโนโลยี\"\n    }\n  ],\n  \"ยาและชีวเวชภัณฑ์\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวยาและชีวเวชภัณฑ์\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวยาและชีวเวชภัณฑ์\"\n    }\n  ],\n  \"เวชภัณฑ์และอุปกรณ์การแพทย์\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวเวชภัณฑ์และอุปกรณ์การแพทย์\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวเวชภัณฑ์และอุปกรณ์การแพทย์\"\n    }\n  ],\n  \"สินค้าอุปโภคบริโภค\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวสินค้าอุปโภคบริโภค\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวสินค้าอุปโภคบริโภค\"\n    }\n  ],\n  \"การเงิน\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวการเงิน\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวการเงิน\"\n    }\n  ],\n  \"พลังงาน\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวพลังงาน\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวพลังงาน\"\n    }\n  ],\n  \"อุตสาหกรรม\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวอุตสาหกรรม\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวอุตสาหกรรม\"\n    }\n  ],\n  \"อื่น ๆ\": [\n    {\n      \"หัวข้อ\": \"ตัวอย่างหัวข้อข่าวอื่น ๆ\",\n      \"เนื้อหาสำคัญ\": \"ตัวอย่างเนื้อหาสำคัญของข่าวอื่น ๆ\"\n    }\n  ]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        208
+      ],
+      "id": "8d9bc0e7-cb28-4e88-89a3-3ef01f3d4ed4",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:4000/api/news/bulk",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1488,
+        0
+      ],
+      "id": "2302bb3e-527f-4c47-8ef1-32bef4140119",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json.output;\n\n// ดึง URL จาก Tavily results ของ node แรก\nconst tavilyResults = $('HTTP Request').first().json.results || [];\nconst urlList = tavilyResults.map(r => r.url).filter(Boolean);\n\nconst grouped = {};\nlet urlIndex = 0;\n\nfor (const category in data) {\n  if (!grouped[category]) grouped[category] = [];\n  for (const news of data[category]) {\n    grouped[category].push({\n      \"หัวข้อ\":        news[\"หัวข้อ\"],\n      \"เนื้อหาสำคัญ\": news[\"เนื้อหาสำคัญ\"],\n      \"url\":           urlList[urlIndex % urlList.length] || \"\"\n    });\n    urlIndex++;\n  }\n}\n\nreturn [{ json: { news: grouped } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        0
+      ],
+      "id": "45ee6470-db58-4e29-8ec6-0ab1cdec826d",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "แปลภาษา",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "แปลภาษา",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "จัดหัวข้อ",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "แปลภาษา": {
+      "main": [
+        [
+          {
+            "node": "แยกข่าวออกเป็นรายการ json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "แยกข่าวออกเป็นรายการ json",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "แยกข่าวออกเป็นรายการ json": {
+      "main": [
+        [
+          {
+            "node": "จัดหัวข้อ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "แยกข่าวออกเป็นรายการ json",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "จัดหัวข้อ",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "จัดหัวข้อ": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "6c10828f-164b-431c-b2f5-5427c64ecf05",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "09c476e58557c2593189fe0eda56eaac2cdfea0374a1d0a31307fdde8002792e"
+  },
+  "id": "YfiUHM7NgLy0pPwt",
+  "tags": []
+}
