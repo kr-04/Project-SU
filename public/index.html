@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<title>U.S. stock news</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+
+:root {
+  --bg:#0f172a; --panel:#020617; --border:#1e293b; --border2:#0f172a;
+  --text:#e2e8f0; --text2:#94a3b8; --text3:#64748b;
+  --input-bg:#020617; --btn-bg:#1e293b; --btn-hover:#334155;
+  --bar-bg:#1e293b; --font-size:15px;
+}
+[data-theme="light"] {
+  --bg:#f1f5f9; --panel:#ffffff; --border:#e2e8f0; --border2:#f1f5f9;
+  --text:#0f172a; --text2:#475569; --text3:#94a3b8;
+  --input-bg:#f8fafc; --btn-bg:#e2e8f0; --btn-hover:#cbd5e1; --bar-bg:#e2e8f0;
+}
+*,*::before,*::after{box-sizing:border-box;}
+body{font-family:Segoe UI,sans-serif;background:var(--bg);color:var(--text);margin:0;font-size:var(--font-size);transition:background .25s,color .25s;}
+
+.tooltip{position:relative;cursor:pointer;color:var(--text2);margin-left:6px;font-size:.9em;}
+.tooltip-text{visibility:hidden;width:260px;background:var(--panel);color:var(--text);text-align:left;border-radius:6px;padding:10px;position:absolute;z-index:10;top:25px;left:0;border:1px solid var(--border);font-size:.85em;line-height:1.5;box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.tooltip:hover .tooltip-text{visibility:visible;}
+
+header{background:var(--panel);padding:12px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
+.logo{font-size:1.15em;font-weight:700;white-space:nowrap;}
+.header-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+
+.theme-btn{background:var(--btn-bg);border:1px solid var(--border);color:var(--text);padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.85em;transition:background .2s;white-space:nowrap;}
+.theme-btn:hover{background:var(--btn-hover);}
+
+.font-ctrl{display:flex;align-items:center;gap:3px;background:var(--btn-bg);border:1px solid var(--border);border-radius:20px;padding:3px 10px;}
+.font-ctrl-label{font-size:.75em;color:var(--text2);padding:0 3px;min-width:20px;text-align:center;}
+.font-btn{background:none;border:none;color:var(--text);font-size:.95em;font-weight:600;cursor:pointer;padding:1px 5px;border-radius:4px;line-height:1.4;transition:background .15s;}
+.font-btn:hover{background:var(--btn-hover);}
+
+.range-group{display:flex;gap:2px;background:var(--btn-bg);border:1px solid var(--border);border-radius:6px;padding:3px;}
+.range-btn{background:none;border:none;color:var(--text2);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:.82em;font-weight:600;transition:all .15s;}
+.range-btn:hover{background:var(--btn-hover);color:var(--text);}
+.range-btn.active{background:#3b82f6;color:#fff;}
+
+input,select{background:var(--input-bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:.88em;}
+.action-btn{background:var(--btn-bg);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.88em;transition:background .2s;}
+.action-btn:hover{background:var(--btn-hover);}
+
+.container{display:grid;grid-template-columns:clamp(280px,25vw,400px) 1fr;gap:20px;padding:20px;}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;}
+.panel h2{margin-top:0;font-size:1.05em;}
+
+.etf-ticker{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:5px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.etf-chip{display:flex;flex-direction:column;background:var(--btn-bg);border:1px solid var(--border);border-radius:8px;padding:4px 8px;min-width:60px;max-width:90px;flex:1;transition:border-color .2s;}
+.etf-chip:hover{border-color:var(--text2);}
+.etf-symbol{font-size:.72em;font-weight:700;color:var(--text2);}
+.etf-price{font-size:.88em;font-weight:600;color:var(--text);}
+.etf-chg{font-size:.7em;font-weight:600;}
+.etf-chg.up{color:#22c55e;}.etf-chg.down{color:#ef4444;}.etf-chg.flat{color:var(--text3);}
+.etf-inline{font-size:.7em;font-weight:600;padding:1px 6px;border-radius:8px;border:1px solid transparent;white-space:nowrap;}
+.etf-inline.up{background:#14532d;border-color:#22c55e;color:#4ade80;}
+.etf-inline.down{background:#7f1d1d;border-color:#ef4444;color:#fca5a5;}
+.etf-inline.flat{background:var(--btn-bg);border-color:var(--border);color:var(--text3);}
+
+.momentum-item{padding:10px 0;border-bottom:1px solid var(--border2);}
+.momentum-item:last-child{border-bottom:none;}
+.m-row1{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;gap:6px;flex-wrap:wrap;}
+.m-category{font-size:.88em;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.m-badge{font-size:.72em;font-weight:600;padding:2px 6px;border-radius:10px;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;}
+.badge-up{background:#14532d;color:#4ade80;}.badge-down{background:#7f1d1d;color:#fca5a5;}
+.badge-same{background:#1e293b;color:#94a3b8;}.badge-new{background:#1e3a5f;color:#60a5fa;}
+[data-theme="light"] .badge-same{background:#e2e8f0;color:#475569;}
+.m-row2{display:flex;gap:12px;font-size:.76em;color:var(--text3);flex-wrap:wrap;}
+.m-stat span{color:var(--text2);}
+.m-bar-wrap{margin-top:6px;height:4px;background:var(--bar-bg);border-radius:2px;overflow:hidden;}
+.m-bar-fill{height:100%;border-radius:2px;transition:width .7s ease;}
+
+.chart-section{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
+.chart-section h3{margin:0 0 10px;font-size:.76em;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px;}
+#pieChart{max-height:190px;}
+
+.pie-legend{display:flex;flex-direction:column;gap:5px;margin-top:10px;font-size:.78em;}
+.pie-legend-item{display:flex;align-items:center;gap:7px;}
+.pie-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.pie-label{flex:1;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pie-count{color:var(--text3);margin-right:2px;}
+.pie-pct{color:var(--text);font-weight:600;min-width:36px;text-align:right;}
+
+.etf-table{width:100%;border-collapse:collapse;font-size:.8em;margin-top:6px;}
+.etf-table th{text-align:left;color:var(--text3);font-weight:600;padding:5px 6px;border-bottom:1px solid var(--border);font-size:.75em;text-transform:uppercase;letter-spacing:.05em;}
+.etf-table td{padding:7px 6px;border-bottom:1px solid var(--border2);vertical-align:middle;}
+.etf-table tr:last-child td{border-bottom:none;}
+.etf-table tr:hover td{background:var(--btn-bg);}
+.etf-sym{font-size:.75em;font-weight:700;color:var(--text3);background:var(--btn-bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;white-space:nowrap;}
+.etf-price-col{text-align:right;color:var(--text);font-weight:600;white-space:nowrap;}
+.etf-pct{text-align:right;font-weight:700;white-space:nowrap;}
+.etf-pct.up{color:#22c55e;}.etf-pct.down{color:#ef4444;}.etf-pct.flat{color:var(--text3);}
+
+.news{border-bottom:1px solid var(--border);padding:14px 0;}
+.news-title{font-size:1em;font-weight:600;margin-bottom:5px;}
+.news-summary{color:var(--text2);font-size:.9em;line-height:1.55;}
+.news-meta{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.news-source-time{font-size:.76em;color:var(--text3);}
+.sent-badge{display:inline-flex;align-items:center;gap:3px;font-size:.74em;font-weight:700;padding:2px 8px;border-radius:10px;border:1px solid transparent;white-space:nowrap;}
+.sent-badge.positive{background:#14532d;border-color:#22c55e;color:#4ade80;}
+.sent-badge.negative{background:#7f1d1d;border-color:#ef4444;color:#fca5a5;}
+.sent-badge.neutral{background:#1e293b;border-color:#475569;color:#94a3b8;}
+[data-theme="light"] .sent-badge.neutral{background:#e2e8f0;border-color:#94a3b8;color:#475569;}
+
+.news-share-tag{display:inline-flex;align-items:center;gap:4px;font-size:.75em;font-weight:600;padding:2px 9px;border-radius:10px;border:1px solid transparent;white-space:nowrap;}
+.search-btn{display:inline-flex;align-items:center;gap:4px;font-size:.75em;font-weight:600;padding:2px 9px;border-radius:10px;border:1px solid var(--border);background:var(--btn-bg);color:var(--text2);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background .15s;}
+.search-btn:hover{background:var(--btn-hover);color:var(--text);}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🧠 U.S. stock news</div>
+  <div class="header-controls">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙 กลางคืน</button>
+    <div class="font-ctrl">
+      <button class="font-btn" onclick="changeFont(-1)">A−</button>
+      <span class="font-ctrl-label" id="fontLabel">15</span>
+      <button class="font-btn" onclick="changeFont(+1)">A+</button>
+    </div>
+    <input id="search" placeholder="ค้นหาข่าว...">
+    <select id="filter"><option value="">ทุกหมวด</option></select>
+    <select id="sentFilter">
+      <option value="">ทุก sentiment</option>
+      <option value="positive">🟢 Positive</option>
+      <option value="negative">🔴 Negative</option>
+      <option value="neutral">⚪ Neutral</option>
+    </select>
+    <div class="range-group">
+      <button class="range-btn active" id="btn-1d" onclick="setRange('1d')">1D</button>
+      <button class="range-btn" id="btn-7d" onclick="setRange('7d')">7D</button>
+      <button class="range-btn" id="btn-30d" onclick="setRange('30d')">30D</button>
+    </div>
+    <button class="action-btn" id="analyzeBtn" onclick="analyzeOldNews()">🔍 Analyze</button>
+    <button class="action-btn" onclick="loadNews()">Refresh</button>
+    <button class="action-btn" onclick="location.href='delete.html'">🗑 จัดการลบข่าว</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="panel">
+    <h2>
+      📈 News Momentum <span id="rangeLabel" style="font-size:.75em;color:var(--text3);font-weight:400"></span>
+      <span class="tooltip">ⓘ<span class="tooltip-text">แสดงจำนวนข่าวจริงแต่ละหมวดในช่วงที่เลือก เทียบกับช่วงก่อนหน้า<br><br>🟢 เพิ่มขึ้น &nbsp;🔴 ลดลง &nbsp;🔵 หมวดใหม่</span></span>
+    </h2>
+
+    <h3 style="font-size:.78em;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px">
+      💹 ราคา ETF รายหมวด
+      <span class="tooltip">ⓘ<span class="tooltip-text" style="width:220px">ราคาและ % เปลี่ยนแปลงของ ETF เทียบราคาปิดเมื่อวาน<br><br>🟢 ราคาขึ้น &nbsp; 🔴 ราคาลง</span></span>
+    </h3>
+    <div class="etf-ticker" id="etfTicker"></div>
+
+    <div id="momentumList"></div>
+
+    <div class="chart-section">
+      <h3>🥧 สัดส่วนข่าว
+        <span class="tooltip">ⓘ<span class="tooltip-text">% ของข่าวแต่ละหมวดจากข่าวทั้งหมดในช่วงที่เลือก</span></span>
+      </h3>
+      <canvas id="pieChart"></canvas>
+      <div class="pie-legend" id="pieLegend"></div>
+    </div>
+
+    <div class="chart-section">
+      <h3>📊 ข่าว vs ETF วันนี้
+        <span class="tooltip">ⓘ<span class="tooltip-text">เปรียบเทียบจำนวนข่าวแต่ละหมวดกับ ETF ที่ตรงกัน<br><br>📰 ข่าว = จำนวนในช่วงที่เลือก &nbsp; 💹 ETF = % เปลี่ยนแปลงวันนี้</span></span>
+      </h3>
+      <table class="etf-table">
+        <thead>
+          <tr>
+            <th>หมวด</th><th>ETF</th>
+            <th style="text-align:center">ข่าว</th>
+            <th style="text-align:right">ราคา</th>
+            <th style="text-align:right">% วันนี้</th>
+          </tr>
+        </thead>
+        <tbody id="etfTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>📰 News Feed</h2>
+    <div id="news"></div>
+  </div>
+
+</div>
+
+<script>
+
+/* THEME */
+let isDark = true
+function toggleTheme() {
+  isDark = !isDark
+  document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light")
+  document.getElementById("themeBtn").textContent = isDark ? "🌙 กลางคืน" : "☀️ กลางวัน"
+  if (momentumData.length) drawPieChart(momentumData.map(d=>d.category), momentumData.map(d=>d.today), momentumData.map(d=>d.shareOfTotal), momentumData[0]?.totalToday||0)
+}
+
+/* FONT SIZE */
+let fontSize = 15
+function changeFont(delta) {
+  fontSize = Math.min(22, Math.max(12, fontSize + delta))
+  document.documentElement.style.setProperty("--font-size", fontSize + "px")
+  document.getElementById("fontLabel").textContent = fontSize
+}
+
+/* PALETTE */
+const COLORS = ["#3b82f6","#22c55e","#f59e0b","#ec4899","#8b5cf6","#06b6d4","#ef4444","#84cc16","#f97316","#a78bfa","#10b981","#e879f9","#0ea5e9","#fbbf24","#34d399"]
+const TAG_PALETTE = [
+  {bg:"#1e3a5f",border:"#3b82f6",color:"#93c5fd"},{bg:"#14532d",border:"#22c55e",color:"#86efac"},
+  {bg:"#78350f",border:"#f59e0b",color:"#fde68a"},{bg:"#500724",border:"#ec4899",color:"#f9a8d4"},
+  {bg:"#3b0764",border:"#8b5cf6",color:"#c4b5fd"},{bg:"#164e63",border:"#06b6d4",color:"#67e8f9"},
+  {bg:"#7f1d1d",border:"#ef4444",color:"#fca5a5"},{bg:"#365314",border:"#84cc16",color:"#bef264"},
+]
+function tagStyle(i) { const p=TAG_PALETTE[i%TAG_PALETTE.length]; return `background:${p.bg};border-color:${p.border};color:${p.color}` }
+
+/* STATE */
+let currentRange = "1d"
+let allNews=[], momentumData=[], shareMap={}, stockPrices={}, etfMap={}
+let pieChart
+
+/* RANGE */
+function setRange(range) {
+  currentRange = range
+  document.querySelectorAll(".range-btn").forEach(b => b.classList.remove("active"))
+  document.getElementById("btn-" + range).classList.add("active")
+  loadMomentum()
+}
+
+/* NEWS */
+async function loadNews() {
+  const data = await fetch("/api/news").then(r => r.json())
+  allNews = data; renderNews(); renderCategories()
+}
+
+function renderNews() {
+  const el=document.getElementById("news"), search=document.getElementById("search").value.toLowerCase(), filter=document.getElementById("filter").value
+  el.innerHTML = ""
+  let list = allNews
+  if (filter) list = list.filter(n => n.source === filter)
+  if (search) list = list.filter(n => (n.title||"").toLowerCase().includes(search)||(n.summary||"").toLowerCase().includes(search))
+  const sentFilter = document.getElementById("sentFilter")?.value || ""
+  if (sentFilter) list = list.filter(n => (n.sentiment||"neutral") === sentFilter)
+
+  list.forEach(n => {
+    const div = document.createElement("div"); div.className = "news"
+    const info = shareMap[n.source]
+    const tagHtml = info ? `<span class="news-share-tag" style="${tagStyle(info.colorIdx)}">📊 ${n.source} · ${info.pct}% ของข่าวทั้งหมด</span>` : ""
+    const sentMap = { positive:{label:"🟢 Positive",cls:"positive"}, negative:{label:"🔴 Negative",cls:"negative"}, neutral:{label:"⚪ Neutral",cls:"neutral"} }
+    const sent = sentMap[n.sentiment||"neutral"]
+    const sentHtml = `<span class="sent-badge ${sent.cls}">${sent.label}</span>`
+    const sourceUrl = n.url && n.url.trim() !== "" ? n.url : `https://www.google.com/search?q=${encodeURIComponent(n.title)}`
+    const sourceBtnLabel = n.url && n.url.trim() !== "" ? "🔗 ดูแหล่งข่าว" : "🔍 ค้นหาต้นฉบับ"
+    div.innerHTML = `<div class="news-title">${n.title}</div><div class="news-summary">${n.summary}</div><div class="news-meta"><span class="news-source-time">${n.source} · ${new Date(n.created_at).toLocaleString("th-TH")}</span>${tagHtml}${sentHtml}<a class="search-btn" href="${sourceUrl}" target="_blank" rel="noopener">${sourceBtnLabel}</a></div>`
+    el.appendChild(div)
+  })
+}
+
+function renderCategories() {
+  const sel=document.getElementById("filter"), cats=[...new Set(allNews.map(n=>n.source).filter(Boolean))]
+  sel.innerHTML='<option value="">ทุกหมวด</option>'
+  cats.forEach(c=>{const op=document.createElement("option");op.value=op.textContent=c;sel.appendChild(op)})
+}
+
+/* STOCKS */
+async function loadStocks() {
+  try {
+    const data = await fetch("/api/stocks").then(r => r.json())
+    stockPrices = data.prices||{}; etfMap = data.etfMap||{}
+    renderEtfTicker()
+    if (momentumData.length) { renderMomentumList(momentumData); renderEtfTable(momentumData) }
+  } catch(e) { console.warn("Stock load failed:", e.message) }
+}
+
+function renderEtfTicker() {
+  const el=document.getElementById("etfTicker"); if (!el) return
+  const seen=new Set(), symToThai={}, chips=[]
+  Object.entries(etfMap).forEach(([cat,e])=>{ if(!symToThai[e.symbol]) symToThai[e.symbol]=cat })
+  Object.values(etfMap).forEach(e => {
+    if (seen.has(e.symbol)) return; seen.add(e.symbol)
+    const q=stockPrices[e.symbol]; if (!q) return
+    const sign=q.changePct>=0?"+":"", cls=q.changePct>0?"up":q.changePct<0?"down":"flat"
+    chips.push(`<div class="etf-chip"><span class="etf-symbol">${q.symbol}</span><span style="font-size:.68em;color:var(--text3)">${symToThai[e.symbol]||e.name}</span><span class="etf-price">$${q.price.toFixed(2)}</span><span class="etf-chg ${cls}">${sign}${q.changePct.toFixed(2)}%</span></div>`)
+  })
+  el.innerHTML = chips.join("")||'<span style="font-size:.8em;color:var(--text3)">ยังไม่มีข้อมูลราคาหุ้น</span>'
+}
+
+/* MOMENTUM */
+async function loadMomentum() {
+  const data = await fetch(`/api/momentum?range=${currentRange}`).then(r => r.json())
+  if (!data||!data.length) return
+  data.sort((a,b)=>b.today-a.today); momentumData=data
+  const lbl=document.getElementById("rangeLabel"); if(lbl&&data[0]?.rangeLabel) lbl.textContent="— "+data[0].rangeLabel
+  shareMap={}; data.forEach((m,i)=>{ shareMap[m.category]={pct:m.shareOfTotal,colorIdx:i} })
+  renderMomentumList(data)
+  drawPieChart(data.map(d=>d.category),data.map(d=>d.today),data.map(d=>d.shareOfTotal),data[0]?.totalToday||0)
+  renderEtfTable(data)
+  renderNews()
+}
+
+function renderMomentumList(data) {
+  const listEl=document.getElementById("momentumList"); listEl.innerHTML=""
+  const maxToday=Math.max(...data.map(d=>d.today))
+  data.forEach((m,i)=>{
+    const color=COLORS[i%COLORS.length], change=m.change
+    let badgeClass,badgeText
+    if(m.isNew){badgeClass="badge-new";badgeText="🆕 หมวดใหม่"}
+    else if(change>0){badgeClass="badge-up";badgeText=`▲ +${change} (+${m.changePct}%)`}
+    else if(change<0){badgeClass="badge-down";badgeText=`▼ ${change} (${m.changePct}%)`}
+    else{badgeClass="badge-same";badgeText="— ทรงตัว"}
+    const barPct=maxToday>0?(m.today/maxToday*100).toFixed(1):0
+    const etfInfo=etfMap[m.category], etfQ=etfInfo?stockPrices[etfInfo.symbol]:null
+    let etfBadgeHtml=""
+    if(etfQ){const sign=etfQ.changePct>=0?"+":"",cls=etfQ.changePct>0?"up":etfQ.changePct<0?"down":"flat";etfBadgeHtml=`<span class="etf-inline ${cls}">${etfInfo.symbol} ${sign}${etfQ.changePct.toFixed(2)}%</span>`}
+    const div=document.createElement("div"); div.className="momentum-item"
+    div.innerHTML=`<div class="m-row1"><span class="m-category" title="${m.category}">${m.category}</span><span style="display:flex;align-items:center;gap:4px;flex-shrink:0">${etfBadgeHtml}<span class="m-badge ${badgeClass}">${badgeText}</span></span></div><div class="m-row2"><span class="m-stat">${m.rangeLabel||"ช่วงนี้"} <span>${m.today} ข่าว</span></span><span class="m-stat">ช่วงก่อน <span>${m.yesterday}</span></span><span class="m-stat">avg<span style="font-size:.7em;color:var(--text3)">${m.avgBaseDays}d</span> <span>${m.avgPerDay}/วัน</span></span><span class="m-stat">สัดส่วน <span>${m.shareOfTotal}%</span></span></div><div class="m-bar-wrap"><div class="m-bar-fill" style="width:${barPct}%;background:${color}"></div></div>`
+    listEl.appendChild(div)
+  })
+}
+
+const gc=()=>isDark?"#1e293b":"#e2e8f0", tc=()=>isDark?"#94a3b8":"#475569"
+const tb=()=>isDark?"#020617":"#ffffff", tbd=()=>isDark?"#334155":"#e2e8f0", lc=()=>isDark?"#e2e8f0":"#0f172a"
+
+function drawPieChart(labels,counts,shares,total) {
+  const ctx=document.getElementById("pieChart").getContext("2d")
+  if(pieChart) pieChart.destroy()
+  const bgColors=labels.map((_,i)=>COLORS[i%COLORS.length])
+  pieChart=new Chart(ctx,{type:"doughnut",data:{labels,datasets:[{data:counts,backgroundColor:bgColors,borderColor:isDark?"#020617":"#ffffff",borderWidth:2,hoverOffset:8}]},options:{cutout:"55%",plugins:{legend:{display:false},tooltip:{backgroundColor:tb(),borderColor:tbd(),borderWidth:1,titleColor:lc(),bodyColor:tc(),callbacks:{label:c=>{const pct=total>0?((c.raw/total)*100).toFixed(1):0;return `${c.raw} ข่าว — ${pct}% ของทั้งหมด`}}}},animation:{duration:800,easing:"easeOutQuart"}}})
+  const legEl=document.getElementById("pieLegend"); legEl.innerHTML=""
+  labels.forEach((lbl,i)=>{const item=document.createElement("div");item.className="pie-legend-item";item.innerHTML=`<div class="pie-dot" style="background:${bgColors[i]}"></div><span class="pie-label" title="${lbl}">${lbl}</span><span class="pie-count">${counts[i]} ข่าว</span><span class="pie-pct">${shares[i]}%</span>`;legEl.appendChild(item)})
+}
+
+function renderEtfTable(data) {
+  const tbody=document.getElementById("etfTableBody"); if(!tbody) return; tbody.innerHTML=""
+  data.forEach((m,i)=>{
+    const info=etfMap[m.category],q=info?stockPrices[info.symbol]:null
+    const sign=q?(q.changePct>=0?"+":""):"", cls=q?(q.changePct>0?"up":q.changePct<0?"down":"flat"):"flat"
+    const tr=document.createElement("tr")
+    tr.innerHTML=`<td style="color:var(--text);font-weight:500">${m.category}</td><td>${info?`<span class="etf-sym">${info.symbol}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td style="text-align:center;color:var(--text2)">${m.today}</td><td class="etf-price-col">${q?`$${q.price.toFixed(2)}`:"—"}</td><td class="etf-pct ${cls}">${q?`${sign}${q.changePct.toFixed(2)}%`:"—"}</td>`
+    tbody.appendChild(tr)
+  })
+}
+
+async function analyzeOldNews() {
+  const btn = document.getElementById("analyzeBtn")
+  btn.textContent = "⏳ กำลังวิเคราะห์..."
+  btn.disabled = true
+  try {
+    const res  = await fetch("/api/news/analyze", { method: "POST" })
+    const data = await res.json()
+    btn.textContent = `✅ ${data.analyzed} ข่าว`
+    setTimeout(() => { btn.textContent = "🔍 Analyze"; btn.disabled = false }, 3000)
+    loadNews()
+  } catch(e) { btn.textContent = "❌ Error"; btn.disabled = false }
+}
+
+document.getElementById("search").addEventListener("input", renderNews)
+document.getElementById("filter").addEventListener("change", renderNews)
+document.getElementById("sentFilter").addEventListener("change", renderNews)
+
+loadNews()
+loadMomentum()
+loadStocks()
+
+</script>
+</body>
+</html>

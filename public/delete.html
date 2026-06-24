@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>News Manager</title>
+
+<style>
+
+body{
+margin:0;
+font-family:Segoe UI;
+background:#0f172a;
+color:#e2e8f0;
+}
+
+header{
+background:#020617;
+padding:15px 30px;
+border-bottom:1px solid #1e293b;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.logo{
+font-size:20px;
+font-weight:600;
+}
+
+.container{
+max-width:900px;
+margin:auto;
+padding:20px;
+}
+
+.panel{
+background:#020617;
+border:1px solid #1e293b;
+border-radius:10px;
+padding:20px;
+}
+
+.item{
+border-bottom:1px solid #1e293b;
+padding:15px 0;
+}
+
+.title{
+font-weight:500;
+font-size:16px;
+margin-bottom:5px;
+}
+
+.summary{
+color:#94a3b8;
+font-size:14px;
+margin-bottom:10px;
+}
+
+.btn-delete{
+background:#ef4444;
+border:none;
+color:white;
+padding:6px 12px;
+border-radius:6px;
+cursor:pointer;
+}
+
+.btn-delete:hover{
+background:#dc2626;
+}
+
+.back{
+background:#1e293b;
+padding:6px 12px;
+border-radius:6px;
+color:white;
+text-decoration:none;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+
+<div class="logo">🧠 U.S. stock news</div>
+
+<a class="back" href="index.html">⬅ Dashboard</a>
+
+</header>
+
+<div class="container">
+
+<div class="panel">
+
+<h2>🗑 จัดการลบข่าว</h2>
+
+<div id="list">กำลังโหลด...</div>
+
+</div>
+
+</div>
+
+<script>
+
+async function loadNews(){
+
+const res=await fetch("/api/news")
+
+const data=await res.json()
+
+render(data)
+
+}
+
+function render(newsList){
+
+const list=document.getElementById("list")
+
+if(!newsList.length){
+
+list.innerHTML="<p>ไม่มีข่าวในระบบ</p>"
+
+return
+
+}
+
+list.innerHTML=""
+
+newsList.forEach(item=>{
+
+const div=document.createElement("div")
+
+div.className="item"
+
+div.innerHTML=`
+
+<div class="title">${item.title}</div>
+
+<div class="summary">${item.summary || "— ไม่มีเนื้อหา —"}</div>
+
+<button class="btn-delete" onclick="deleteNews(${item.id})">
+ลบข่าว
+</button>
+
+`
+
+list.appendChild(div)
+
+})
+
+}
+
+async function deleteNews(id){
+
+if(!confirm("ต้องการลบข่าวนี้ใช่ไหม?")) return
+
+await fetch("/api/news/"+id,{
+method:"DELETE"
+})
+
+loadNews()
+
+}
+
+loadNews()
+
+</script>
+
+</body>
+</html>
